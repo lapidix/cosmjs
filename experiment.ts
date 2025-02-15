@@ -1,10 +1,10 @@
 import { DirectSecp256k1HdWallet, OfflineDirectSigner } from "@cosmjs/proto-signing";
-import { IndexedTx, SigningStargateClient, StargateClient } from "@cosmjs/stargate";
+import { GasPrice, IndexedTx, SigningStargateClient, StargateClient } from "@cosmjs/stargate";
 import { readFile } from "fs/promises";
 
 import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx";
 import { Tx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import "dotenv/config";
+import { config } from "./config";
 
 const getAliceSignerFromMnemonic = async (): Promise<OfflineDirectSigner> => {
   return DirectSecp256k1HdWallet.fromMnemonic((await readFile("./testnet.alice.mnemonic.key", "utf-8")).toString(), {
@@ -13,18 +13,15 @@ const getAliceSignerFromMnemonic = async (): Promise<OfflineDirectSigner> => {
 };
 
 const runAll = async (): Promise<void> => {
-  const aliceAddress = process.env.ALICE_ADDRESS || "";
-  const faucetTransaction = process.env.FAUCET_TX || "";
+  console.log("Alice address:", config.aliceAddress, "Faucet transaction:", config.faucetTx);
 
-  console.log("Alice address:", aliceAddress, "Faucet transaction:", faucetTransaction);
-
-  const client = await StargateClient.connect(process.env.RPC_URL!);
+  const client = await StargateClient.connect(config.rpcUrl!);
   console.log("With client, chain id:", await client.getChainId(), ", height:", await client.getHeight());
-  console.log("Alice balances:", await client.getAllBalances(aliceAddress));
+  console.log("Alice balances:", await client.getAllBalances(config.aliceAddress));
 
   console.log("-------------------------------------");
 
-  const faucetTx = (await client.getTx(faucetTransaction)) as IndexedTx;
+  const faucetTx = (await client.getTx(config.faucetTx)) as IndexedTx;
   console.log("Faucet Tx:", faucetTx);
   const decodedTx: Tx = Tx.decode(faucetTx.tx);
   console.log("DecodedTx:", decodedTx);
@@ -40,7 +37,9 @@ const runAll = async (): Promise<void> => {
   const aliceSigner: OfflineDirectSigner = await getAliceSignerFromMnemonic();
   const alice = (await aliceSigner.getAccounts())[0].address;
   console.log("Alice's address from signer", alice);
-  const signingClient = await SigningStargateClient.connectWithSigner(process.env.RPC_URL!, aliceSigner);
+  const signingClient = await SigningStargateClient.connectWithSigner(config.rpcUrl, aliceSigner, {
+    gasPrice: GasPrice.fromString("0.005uatom"),
+  });
   console.log("With signing client, chain id:", await signingClient.getChainId(), ", height:", await signingClient.getHeight());
 
   console.log("-------------------------------------");
@@ -59,22 +58,28 @@ const runAll = async (): Promise<void> => {
   const result = await signingClient.signAndBroadcast(
     // signerAddress
     alice,
-    // message
     [
+      // message 1
       {
         typeUrl: "/cosmos.bank.v1beta1.MsgSend",
         value: {
           fromAddress: alice,
           toAddress: faucet,
-          amount: [{ denom: "uatom", amount: "10000" }],
+          amount: [{ denom: "uatom", amount: "100000" }],
+        },
+      },
+      // message 2
+      {
+        typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+        value: {
+          fromAddress: alice,
+          toAddress: config.someOtherAddress,
+          amount: [{ denom: "uatom", amount: "10" }],
         },
       },
     ],
-    // fee
-    {
-      amount: [{ denom: "uatom", amount: "1000" }],
-      gas: "200000",
-    }
+    //fee
+    "auto"
   );
   console.log("Result:", result);
   // * https://explorer.polypore.xyz/provider/tx/456BF165A9B49C6D9594295BE98978E39AA8A58C9889A9D42D5F6512F96A2423
