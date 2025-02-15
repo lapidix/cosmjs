@@ -16,6 +16,8 @@ const runAll = async (): Promise<void> => {
   const aliceAddress = process.env.ALICE_ADDRESS || "";
   const faucetTransaction = process.env.FAUCET_TX || "";
 
+  console.log("Alice address:", aliceAddress, "Faucet transaction:", faucetTransaction);
+
   const client = await StargateClient.connect(process.env.RPC_URL!);
   console.log("With client, chain id:", await client.getChainId(), ", height:", await client.getHeight());
   console.log("Alice balances:", await client.getAllBalances(aliceAddress));
@@ -47,12 +49,32 @@ const runAll = async (): Promise<void> => {
   console.log("Gas limit: ", decodedTx.authInfo?.fee?.gasLimit.toString());
   console.log("Alice balance before:", await client.getAllBalances(alice));
   console.log("Faucet balance before:", await client.getAllBalances(faucet));
-  const result = await signingClient.sendTokens(
+  // const result = await signingClient.sendTokens(
+  //   alice,
+  //   faucet,
+  //   [{ denom: "uatom", amount: "10000" }],
+  //   { amount: [{ amount: "1000", denom: "uatom" }], gas: "200000" },
+  //   "This is a memo, alice -> faucet"
+  // );
+  const result = await signingClient.signAndBroadcast(
+    // signerAddress
     alice,
-    faucet,
-    [{ denom: "uatom", amount: "10000" }],
-    { amount: [{ amount: "1000", denom: "uatom" }], gas: "200000" },
-    "This is a memo, alice -> faucet"
+    // message
+    [
+      {
+        typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+        value: {
+          fromAddress: alice,
+          toAddress: faucet,
+          amount: [{ denom: "uatom", amount: "10000" }],
+        },
+      },
+    ],
+    // fee
+    {
+      amount: [{ denom: "uatom", amount: "1000" }],
+      gas: "200000",
+    }
   );
   console.log("Result:", result);
   // * https://explorer.polypore.xyz/provider/tx/456BF165A9B49C6D9594295BE98978E39AA8A58C9889A9D42D5F6512F96A2423
