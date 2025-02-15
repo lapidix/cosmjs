@@ -56,10 +56,8 @@ const runAll = async (): Promise<void> => {
   //   "This is a memo, alice -> faucet"
   // );
   const result = await signingClient.signAndBroadcast(
-    // signerAddress
     alice,
     [
-      // message 1
       {
         typeUrl: "/cosmos.bank.v1beta1.MsgSend",
         value: {
@@ -68,21 +66,19 @@ const runAll = async (): Promise<void> => {
           amount: [{ denom: "uatom", amount: "100000" }],
         },
       },
-      // message 2
       {
-        typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+        typeUrl: "/cosmos.staking.v1beta1.MsgDelegate",
         value: {
-          fromAddress: alice,
-          toAddress: config.someOtherAddress,
-          amount: [{ denom: "uatom", amount: "10" }],
+          delegatorAddress: alice,
+          validatorAddress: config.validatorAddress,
+          amount: { denom: "uatom", amount: "1000" },
         },
       },
     ],
-    //fee
     "auto"
   );
   console.log("Result:", result);
-  // * https://explorer.polypore.xyz/provider/tx/456BF165A9B49C6D9594295BE98978E39AA8A58C9889A9D42D5F6512F96A2423
+  // * https://explorer.polypore.xyz/provider/tx/FDA7478D2AE5F4A351386CA2C348C86C5C34E531874F75B20182199DA755D725
   console.log("Alice balance after:", await client.getAllBalances(alice));
   console.log("Faucet balance after:", await client.getAllBalances(faucet));
 };
