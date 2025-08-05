@@ -1,5 +1,13 @@
-import { DirectSecp256k1HdWallet, OfflineDirectSigner } from "@cosmjs/proto-signing";
-import { GasPrice, IndexedTx, SigningStargateClient, StargateClient } from "@cosmjs/stargate";
+import {
+  DirectSecp256k1HdWallet,
+  OfflineDirectSigner,
+} from "@cosmjs/proto-signing";
+import {
+  GasPrice,
+  IndexedTx,
+  SigningStargateClient,
+  StargateClient,
+} from "@cosmjs/stargate";
 import { readFile } from "fs/promises";
 
 import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx";
@@ -7,17 +15,33 @@ import { Tx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { config } from "./config";
 
 const getAliceSignerFromMnemonic = async (): Promise<OfflineDirectSigner> => {
-  return DirectSecp256k1HdWallet.fromMnemonic((await readFile("./testnet.alice.mnemonic.key", "utf-8")).toString(), {
-    prefix: "cosmos",
-  });
+  return DirectSecp256k1HdWallet.fromMnemonic(
+    (await readFile("./testnet.alice.mnemonic.key", "utf-8")).toString(),
+    {
+      prefix: "cosmos",
+    }
+  );
 };
 
 const runAll = async (): Promise<void> => {
-  console.log("Alice address:", config.aliceAddress, "Faucet transaction:", config.faucetTx);
+  console.log(
+    "Alice address:",
+    config.aliceAddress,
+    "Faucet transaction:",
+    config.faucetTx
+  );
 
   const client = await StargateClient.connect(config.rpcUrl!);
-  console.log("With client, chain id:", await client.getChainId(), ", height:", await client.getHeight());
-  console.log("Alice balances:", await client.getAllBalances(config.aliceAddress));
+  console.log(
+    "With client, chain id:",
+    await client.getChainId(),
+    ", height:",
+    await client.getHeight()
+  );
+  console.log(
+    "Alice balances:",
+    await client.getAllBalances(config.aliceAddress)
+  );
 
   console.log("-------------------------------------");
 
@@ -29,7 +53,9 @@ const runAll = async (): Promise<void> => {
 
   console.log("-------------------------------------");
 
-  const sendMessage: MsgSend = MsgSend.decode(decodedTx.body!.messages[0].value);
+  const sendMessage: MsgSend = MsgSend.decode(
+    decodedTx.body!.messages[0].value
+  );
   console.log("Send message:", sendMessage);
   const faucet: string = sendMessage.fromAddress;
   console.log("Faucet balances:", await client.getAllBalances(faucet));
@@ -37,10 +63,19 @@ const runAll = async (): Promise<void> => {
   const aliceSigner: OfflineDirectSigner = await getAliceSignerFromMnemonic();
   const alice = (await aliceSigner.getAccounts())[0].address;
   console.log("Alice's address from signer", alice);
-  const signingClient = await SigningStargateClient.connectWithSigner(config.rpcUrl, aliceSigner, {
-    gasPrice: GasPrice.fromString("0.005uatom"),
-  });
-  console.log("With signing client, chain id:", await signingClient.getChainId(), ", height:", await signingClient.getHeight());
+  const signingClient = await SigningStargateClient.connectWithSigner(
+    config.rpcUrl,
+    aliceSigner,
+    {
+      gasPrice: GasPrice.fromString("0.005uatom"),
+    }
+  );
+  console.log(
+    "With signing client, chain id:",
+    await signingClient.getChainId(),
+    ", height:",
+    await signingClient.getHeight()
+  );
 
   console.log("-------------------------------------");
 
@@ -52,9 +87,10 @@ const runAll = async (): Promise<void> => {
   //   alice,
   //   faucet,
   //   [{ denom: "uatom", amount: "10000" }],
-  //   { amount: [{ amount: "1000", denom: "uatom" }], gas: "200000" },
+  //   "auto",
   //   "This is a memo, alice -> faucet"
   // );
+  // * 9F664187EB722144DAABF9BA42A3C02097DF927B2604BF32FF51CA6E2025AF9F
   const result = await signingClient.signAndBroadcast(
     alice,
     [
@@ -78,7 +114,7 @@ const runAll = async (): Promise<void> => {
     "auto"
   );
   console.log("Result:", result);
-  // * https://explorer.polypore.xyz/provider/tx/FDA7478D2AE5F4A351386CA2C348C86C5C34E531874F75B20182199DA755D725
+  // * 0CAFD436F40BF1355CC8A9F68F6E617D7B93196288DAAF7A44A1566D9CCB6BF9
   console.log("Alice balance after:", await client.getAllBalances(alice));
   console.log("Faucet balance after:", await client.getAllBalances(faucet));
 };
