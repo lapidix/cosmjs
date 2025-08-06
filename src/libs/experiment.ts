@@ -1,12 +1,12 @@
 import {
   DirectSecp256k1HdWallet,
-  OfflineDirectSigner,
+  type OfflineDirectSigner,
 } from "@cosmjs/proto-signing";
 import {
   GasPrice,
-  IndexedTx,
   SigningStargateClient,
   StargateClient,
+  type IndexedTx,
 } from "@cosmjs/stargate";
 import { readFile } from "fs/promises";
 
